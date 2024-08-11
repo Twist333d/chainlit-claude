@@ -12,21 +12,20 @@ This project is a Chainlit-based AI assistant that uses the Claude 3.5 Sonnet mo
 ## Installation
 
 1. Clone this repository:
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+git clone [https://github.com/your-username/your-repo-name.git](https://github.com/Twist333d/chainlit-claude.git)
+cd chainlit-claude
 
-Raw code
 
-2. Install the required dependencies:
-pip install -r requirements.txt
+2. Install the required dependencies (Poetry):
+   poetry shell
+   poetry install
 
-Raw code
 
 3. Set up your environment variables:
 Create a `.env` file in the project root and add your Anthropic API key:
 ANTHROPIC_API_KEY=your_api_key_here
 
-Raw code
+
 
 ## Usage
 
@@ -34,7 +33,6 @@ To start the Chainlit app, run:
 
 chainlit run app.py
 
-Raw code
 
 Then open your web browser and navigate to `http://localhost:8000` to interact with the AI assistant.
 
