@@ -1,57 +1,50 @@
-# Chainlit AI Assistant
+# 🤖 chainlit-claude 💬
 
-This project is a Chainlit-based AI assistant that uses the Claude 3.5 Sonnet model to provide comprehensive coding support, project management assistance, and data analysis.
+This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/docs/welcome) 3.5 Sonnet model with [Chainlit](https://docs.chainlit.io/) for conversational AI and prompt caching capabilities. 
 
-## Features
+## ✨ Features
 
-- Interactive AI assistant powered by Claude 3.5 Sonnet
-- Conversation memory to maintain context
-- Customizable system prompts
-- Streaming responses for real-time interaction
+- **Prompt Caching:**  Leverage Claude's prompt caching feature to save on token usage and reduce latency, especially in extended conversations.
+- **Performance Insights:**  Get detailed metrics on each interaction, including time taken, token usage, and caching efficiency.
 
-## Installation
+## 🚀 Getting Started
 
-1. Clone this repository:
-git clone [https://github.com/your-username/your-repo-name.git](https://github.com/Twist333d/chainlit-claude.git)
-cd chainlit-claude
-
-
-2. Install the required dependencies (Poetry):
-   poetry shell
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/your-username/chainlit-claude.git
+   cd chainlit-claude 
+   ```
+ 
+2. Install Dependencies:
+   ```bash
    poetry install
+   Set up Environment Variables:
+   ```
 
+3. Create a .env file in the root directory.
+Add your Anthropic API key:
+   ```bash
+   ANTHROPIC_API_KEY=your_anthropic_api_key
+   ```
 
-3. Set up your environment variables:
-Create a `.env` file in the project root and add your Anthropic API key:
-ANTHROPIC_API_KEY=your_api_key_here
+4. Run the Application:
+   ```bash
+   chainlit run app.py
+   ```
 
+This will start the Chainlit server, and you can access the application in your web browser.
 
+## ⚙️ Usage
+Once the application is running, you can start interacting with Claude 3.5 Sonnet through the Chainlit interface.
 
-## Usage
+Type your messages in the chat input.
+The application will send your message to Claude and display its response.
+After each response, you'll see performance metrics, including prompt caching statistics.
 
-To start the Chainlit app, run:
+## 🚧 Open Issues
+- Streaming Support: Streaming responses from Claude is not yet implemented.
+- Cache Breakpoint Handling: The current implementation doesn't handle cache breakpoints optimally after 4 turns.
 
-chainlit run app.py
-
-
-Then open your web browser and navigate to `http://localhost:8000` to interact with the AI assistant.
-
-## Configuration
-
-The system prompt for the AI assistant can be customized by editing the `prompts.yaml` file.
-
-## Dependencies
-
-- chainlit
-- langchain
-- langchain_anthropic
-- python-dotenv
-- pyyaml
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🙏 Acknowledgments
+Anthropic for developing the Claude language model.
+Chainlit for providing the conversational AI framework.

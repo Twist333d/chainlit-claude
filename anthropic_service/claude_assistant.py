@@ -3,13 +3,15 @@ import os
 import time
 from dotenv import load_dotenv
 import yaml
-import asyncio
 
 # Load environment variables
 load_dotenv()
 
 # Load the system_prompt.yaml file
-with open('anthropic_service/prompts/system_prompt.yaml', 'r') as file:
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+system_prompt_path = os.path.join(base_dir, 'anthropic_service', 'prompts', 'system_prompt.yaml')
+
+with open(system_prompt_path, 'r') as file:
     prompts = yaml.safe_load(file)
 
 # Access the system prompt
@@ -17,7 +19,7 @@ system_prompt = prompts.get('system_prompt')
 
 # Initialize the client
 class ClaudeAssistant:
-    def __init__(self, model_name="claude-3-5-sonnet-20240620", max_tokens=8192, temperature=0.75, cached_turns=5):
+    def __init__(self, model_name="claude-3-5-sonnet-20240620", max_tokens=8192, temperature=0.75, cached_turns=3):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.model_name = model_name
         self.temperature = temperature
@@ -31,29 +33,28 @@ class ClaudeAssistant:
             }
         ]
 
-    async def generate_response(self, user_message):
+    def generate_response(self, user_message):
         self.conversation_history.add_turn_user(user_message)
 
         start_time = time.time()
 
-        with self.client.messages.stream(
-            max_tokens=self.max_tokens,
-            messages=self.conversation_history.get_turns(),
+        response = self.client.messages.create(
             model=self.model_name,
-            temperature=self.temperature,
-            system=self.system_message[0]['text'],
-        ) as stream:
-            full_response = ""
-            for text in stream.text_stream:
-                full_response += text
-                yield {"type": "token", "content": text}
+            max_tokens=self.max_tokens,
+            extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+            system=self.system_message,
+            messages=self.conversation_history.get_turns(),
+
+        )
 
         end_time = time.time()
 
-        self.conversation_history.add_turn_assistant(full_response)
+        assistant_reply = response.content[0].text
+        self.conversation_history.add_turn_assistant(assistant_reply)
 
-        performance_metrics = self._calculate_performance_metrics(stream, start_time, end_time)
-        yield {"type": "metrics", "data": performance_metrics}
+        performance_metrics = self._calculate_performance_metrics(response, start_time, end_time)
+
+        return assistant_reply, performance_metrics
 
     def _calculate_performance_metrics(self, response, start_time, end_time):
         elapsed_time = end_time - start_time
