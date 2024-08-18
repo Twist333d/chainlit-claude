@@ -16,19 +16,18 @@ This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/doc
    ```
  
 2. Install Dependencies:
-   ```bash
+   ```python
    poetry install
-   Set up Environment Variables:
    ```
-
-3. Create a .env file in the root directory.
+3. Set up Environment Variables:
+Create a .env file in the root directory.
 Add your Anthropic API key:
-   ```bash
+   ```python
    ANTHROPIC_API_KEY=your_anthropic_api_key
    ```
 
 4. Run the Application:
-   ```bash
+   ```python
    chainlit run app.py
    ```
 
