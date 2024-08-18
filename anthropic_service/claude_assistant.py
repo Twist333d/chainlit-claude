@@ -31,38 +31,46 @@ class ClaudeAssistant:
             }
         ]
 
-    def process_message(self, user_message):
+    async def generate_response(self, user_message):
         self.conversation_history.add_turn_user(user_message)
 
         start_time = time.time()
 
-        response = self.client.messages.create(
-            model=self.model_name,
+        with self.client.messages.stream(
             max_tokens=self.max_tokens,
-            extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
-            system=self.system_message,
             messages=self.conversation_history.get_turns(),
-
-        )
+            model=self.model_name,
+            temperature=self.temperature,
+            system=self.system_message[0]['text'],
+        ) as stream:
+            full_response = ""
+            for text in stream.text_stream:
+                full_response += text
+                yield {"type": "token", "content": text}
 
         end_time = time.time()
 
-        assistant_reply = response.content[0].text
-        self.conversation_history.add_turn_assistant(assistant_reply)
+        self.conversation_history.add_turn_assistant(full_response)
 
-        performance_metrics = self._calculate_performance_metrics(response, start_time, end_time)
-
-        return assistant_reply, performance_metrics
+        performance_metrics = self._calculate_performance_metrics(stream, start_time, end_time)
+        yield {"type": "metrics", "data": performance_metrics}
 
     def _calculate_performance_metrics(self, response, start_time, end_time):
         elapsed_time = end_time - start_time
         input_tokens = response.usage.input_tokens
         output_tokens = response.usage.output_tokens
-        input_tokens_cache_read = getattr(response.usage, 'cache_read_input_tokens', 'N/A')
-        input_tokens_cache_create = getattr(response.usage, 'cache_creation_input_tokens', 'N/A')
+        input_tokens_cache_read = getattr(response.usage, 'cache_read_input_tokens', 0)
+        input_tokens_cache_create = getattr(response.usage, 'cache_creation_input_tokens', 0)
 
-        total_input_tokens = input_tokens + (int(input_tokens_cache_read) if input_tokens_cache_read != 'N/A' else 0)
-        percentage_cached = (int(input_tokens_cache_read) / total_input_tokens * 100 if input_tokens_cache_read != 'N/A' and total_input_tokens > 0 else 0)
+        # Calculate the percentage of input prompt cached
+        total_input_tokens = input_tokens + (
+            int(input_tokens_cache_read) if input_tokens_cache_read != "---" else 0
+        )
+        percentage_cached = (
+            int(input_tokens_cache_read) / total_input_tokens * 100
+            if input_tokens_cache_read != "---" and total_input_tokens > 0
+            else 0
+        )
 
         return {
             "time_taken": elapsed_time,
