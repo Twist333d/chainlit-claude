@@ -685,9 +685,10 @@ cython_debug/
 #.idea/
 
 # Chainlit
-.chainlit
+/.chainlit/
 
 # Local testing files
+
 /local_tests/
 /.files
 chainlit.md
