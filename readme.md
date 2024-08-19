@@ -6,6 +6,7 @@ This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/doc
 
 - **Prompt Caching:**  Leverage Claude's prompt caching feature to save on token usage and reduce latency, especially in extended conversations.
 - **Performance Insights:**  Get detailed metrics on each interaction, including time taken, token usage, and caching efficiency.
+- **Streaming output:** Support streaming of response to improve the UX.
 
 ## 🚀 Getting Started
 
@@ -41,8 +42,7 @@ The application will send your message to Claude and display its response.
 After each response, you'll see performance metrics, including prompt caching statistics.
 
 ## 🚧 Open Issues
-- Streaming Support: Streaming responses from Claude is not yet implemented.
-- Cache Breakpoint Handling: The current implementation doesn't handle cache breakpoints optimally after 4 turns.
+- None so far -> please report one, if you spot it
 
 ## 🙏 Acknowledgments
 Anthropic for developing the Claude language model.
