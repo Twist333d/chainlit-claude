@@ -25,20 +25,24 @@ async def main(message: cl.Message):
     global anthropic_service
 
     try:
-        response, metrics = anthropic_service.generate_response(message.content)
+        response_message = cl.Message(content="")
+        async for item in anthropic_service.generate_response(message.content):
+            if item["type"] == "chunk":
+                await response_message.stream_token(item["content"])
+            elif item["type"] == "final":
+                await response_message.send()
 
-        await cl.Message(content=response).send()
-
-        metrics_message = (
-            "📊 *Performance Metrics*:\n"
-            f"⏱️  - Time taken: {metrics['time_taken']:.2f} seconds\n"
-            f"📥  - User input tokens: {metrics['input_tokens']}\n"
-            f"📤  - Output tokens: {metrics['output_tokens']}\n"
-            f"💾  - Input tokens (cache read): {metrics['input_tokens_cache_read']}\n"
-            f"🆕  - Input tokens (cache create): {metrics['input_tokens_cache_create']}\n"
-            f"📈  - {metrics['percentage_cached']:.1f}% of input prompt cached ({metrics['total_input_tokens']} tokens)"
-        )
-        await cl.Message(content=metrics_message).send()
+                metrics = item["metrics"]
+                metrics_message = (
+                    "📊 *Performance Metrics*:\n"
+                    f"⏱️  - Time taken: {metrics['time_taken']:.2f} seconds\n"
+                    f"📥  - User input tokens: {metrics['input_tokens']}\n"
+                    f"📤  - Output tokens: {metrics['output_tokens']}\n"
+                    f"💾  - Input tokens (cache read): {metrics['input_tokens_cache_read']}\n"
+                    f"🆕  - Input tokens (cache create): {metrics['input_tokens_cache_create']}\n"
+                    f"📈  - {metrics['percentage_cached']:.1f}% of input prompt cached ({metrics['total_input_tokens']} tokens)"
+                )
+                await cl.Message(content=metrics_message).send()
 
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"

@@ -3,6 +3,7 @@ import os
 import time
 from dotenv import load_dotenv
 import yaml
+import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +21,7 @@ system_prompt = prompts.get('system_prompt')
 # Initialize the client
 class ClaudeAssistant:
     def __init__(self, model_name="claude-3-5-sonnet-20240620", max_tokens=8192, temperature=0.75, cached_turns=3):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -33,35 +34,51 @@ class ClaudeAssistant:
             }
         ]
 
-    def generate_response(self, user_message):
+    async def generate_response(self, user_message):
         self.conversation_history.add_turn_user(user_message)
 
         start_time = time.time()
 
-        response = self.client.messages.create(
-            model=self.model_name,
-            max_tokens=self.max_tokens,
-            extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
-            system=self.system_message,
-            messages=self.conversation_history.get_turns(),
+        async with self.client.messages.stream(
+                model=self.model_name,
+                max_tokens=self.max_tokens,
+                extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+                system=self.system_message,
+                messages=self.conversation_history.get_turns(),
+        ) as stream:
+            async for event in stream:
+                if event.type == "text":
+                    yield {"type": "chunk", "content": event.text}
 
-        )
+            final_message = await stream.get_final_message()
+            assistant_reply = final_message.content[0].text
 
         end_time = time.time()
 
-        assistant_reply = response.content[0].text
         self.conversation_history.add_turn_assistant(assistant_reply)
 
-        performance_metrics = self._calculate_performance_metrics(response, start_time, end_time)
+        performance_metrics = self._calculate_performance_metrics(final_message, start_time, end_time)
 
-        return assistant_reply, performance_metrics
+        yield {"type": "final", "content": assistant_reply, "metrics": performance_metrics}
 
-    def _calculate_performance_metrics(self, response, start_time, end_time):
+    async def _handle_stream(self, stream):
+        full_response = ""
+        async for event in stream:
+            if event.type == "text":
+                print(event.text, end="", flush=True)
+                full_response += event.text
+            elif event.type == 'content_block_stop':
+                print('\n\nContent block finished accumulating:', event.content_block)
+
+        final_message = await stream.get_final_message()
+        return full_response, final_message
+
+    def _calculate_performance_metrics(self, final_message, start_time, end_time):
         elapsed_time = end_time - start_time
-        input_tokens = response.usage.input_tokens
-        output_tokens = response.usage.output_tokens
-        input_tokens_cache_read = getattr(response.usage, 'cache_read_input_tokens', 0)
-        input_tokens_cache_create = getattr(response.usage, 'cache_creation_input_tokens', 0)
+        input_tokens = final_message.usage.input_tokens
+        output_tokens = final_message.usage.output_tokens
+        input_tokens_cache_read = getattr(final_message.usage, 'cache_read_input_tokens', 0)
+        input_tokens_cache_create = getattr(final_message.usage, 'cache_creation_input_tokens', 0)
 
         # Calculate the percentage of input prompt cached
         total_input_tokens = input_tokens + (
