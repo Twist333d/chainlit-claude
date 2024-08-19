@@ -12,6 +12,8 @@ chainlit = "^1.1.402"
 langchain-anthropic = "^0.1.22"
 python-dotenv = "^1.0.1"
 langchain = "^0.2.12"
+firecrawl = "^0.0.20"
+slugify = "^0.0.1"
 
 
 [build-system]

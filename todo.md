@@ -1,0 +1,3 @@
+- Add FireCrawl search tool
+  - Support tool steps & results in Chainlit
+- Add ability to upload files
