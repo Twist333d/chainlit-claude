@@ -37,3 +37,7 @@ Scope
     - get the result
     - process the tool result with additional response call
   - provide final result to the user
+
+
+Issues:
+- tool_use event is never triggerd -> hence the erorr

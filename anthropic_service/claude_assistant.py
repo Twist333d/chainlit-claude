@@ -4,6 +4,8 @@ import time
 from dotenv import load_dotenv
 import yaml
 import asyncio
+from .tools.tools import firecrawl_search_tool, process_tool_call, FireCrawlSearch
+
 
 # Load environment variables
 load_dotenv()
@@ -33,33 +35,68 @@ class ClaudeAssistant:
                 'cache_control' : {'type' : 'ephemeral'}
             }
         ]
+        self.tools=[firecrawl_search_tool]
 
     async def generate_response(self, user_message):
         self.conversation_history.add_turn_user(user_message)
-
         start_time = time.time()
+        messages = self.conversation_history.get_turns()
 
         async with self.client.messages.stream(
                 model=self.model_name,
                 max_tokens=self.max_tokens,
-                extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+                temperature=self.temperature,
                 system=self.system_message,
-                messages=self.conversation_history.get_turns(),
+                extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+                messages=messages,
+                tools=self.tools
         ) as stream:
+            tool_use_event = None
             async for event in stream:
                 if event.type == "text":
                     yield {"type": "chunk", "content": event.text}
+                elif event.type == "tool_use":
+                    tool_use_event = event
+                    tool_result = await process_tool_call(event.name, event.input)
+                    yield {"type": "tool_use", "name": event.name, "input": event.input, "result": tool_result}
 
             final_message = await stream.get_final_message()
-            assistant_reply = final_message.content[0].text
+
+        if final_message.stop_reason == "tool_use":
+            tool_use = next(block for block in final_message.content if block.type == "tool_use")
+            tool_result = await process_tool_call(tool_use.name, tool_use.input)
+            yield {"type": "tool_use", "name": tool_use.name, "input": tool_use.input, "result": tool_result}
+
+            # Make a second API call with the tool result
+            response = await self.client.messages.create(
+                model=self.model_name,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+                system=self.system_message,
+                messages=messages + [
+                    {"role": "assistant", "content": final_message.content},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_use.id,
+                                "content": str(tool_result),
+                            }
+                        ],
+                    },
+                ],
+                tools=self.tools,
+            )
+            final_response = "".join([block.text for block in response.content if hasattr(block, "text")])
+        else:
+            final_response = "".join([block.text for block in final_message.content if hasattr(block, "text")])
 
         end_time = time.time()
-
-        self.conversation_history.add_turn_assistant(assistant_reply)
-
+        self.conversation_history.add_turn_assistant(final_response)
         performance_metrics = self._calculate_performance_metrics(final_message, start_time, end_time)
-
-        yield {"type": "final", "content": assistant_reply, "metrics": performance_metrics}
+        yield {"type": "final", "content": final_response, "metrics": performance_metrics}
 
     async def _handle_stream(self, stream):
         full_response = ""
@@ -146,3 +183,11 @@ class ConversationHistory:
                 # add other turns as they are
                 result.append(turn)
         return list(reversed(result))  # sort back to first to last
+
+    async def process_tool_call(tool_name: str, tool_input: dict):
+        if tool_name == "firecrawl_search":
+            searcher = FireCrawlSearch()
+            query = tool_input['query']
+            return await searcher.search(query)
+        else:
+            return "Unknown tool"
