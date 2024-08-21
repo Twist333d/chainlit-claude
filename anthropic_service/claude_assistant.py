@@ -3,7 +3,6 @@ import os
 import time
 from dotenv import load_dotenv
 import yaml
-import asyncio
 from .tools.tools import firecrawl_search_tool, process_tool_call, FireCrawlSearch
 
 
@@ -55,27 +54,25 @@ class ClaudeAssistant:
             async for event in stream:
                 if event.type == "text":
                     yield {"type": "chunk", "content": event.text}
-                elif event.type == "tool_use":
-                    tool_use_event = event
-                    tool_result = await process_tool_call(event.name, event.input)
-                    yield {"type": "tool_use", "name": event.name, "input": event.input, "result": tool_result}
 
-            final_message = await stream.get_final_message()
 
-        if final_message.stop_reason == "tool_use":
-            tool_use = next(block for block in final_message.content if block.type == "tool_use")
+            first_response_full = await stream.get_final_message()
+
+        if first_response_full.stop_reason == "tool_use":
+            tool_use = next(block for block in first_response_full.content if block.type == "tool_use")
             tool_result = await process_tool_call(tool_use.name, tool_use.input)
             yield {"type": "tool_use", "name": tool_use.name, "input": tool_use.input, "result": tool_result}
 
             # Make a second API call with the tool result
-            response = await self.client.messages.create(
+            async with self.client.messages.stream(
                 model=self.model_name,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
                 extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
                 system=self.system_message,
+                tools=self.tools,
                 messages=messages + [
-                    {"role": "assistant", "content": final_message.content},
+                    {"role": "assistant", "content": first_response_full.content},
                     {
                         "role": "user",
                         "content": [
@@ -86,29 +83,23 @@ class ClaudeAssistant:
                             }
                         ],
                     },
-                ],
-                tools=self.tools,
-            )
-            final_response = "".join([block.text for block in response.content if hasattr(block, "text")])
+                ],) as tool_results_stream:
+                        async for event in tool_results_stream:
+                            if event.type == "text":
+                                yield {"type": "chunk", "content": event.text}
+
+                        second_response_full = await tool_results_stream.get_final_message()
+
+
+
+            final_response = "".join([block.text for block in second_response_full.content if hasattr(block, "text")])
         else:
-            final_response = "".join([block.text for block in final_message.content if hasattr(block, "text")])
+            final_response = "".join([block.text for block in first_response_full.content if hasattr(block, "text")])
 
         end_time = time.time()
         self.conversation_history.add_turn_assistant(final_response)
-        performance_metrics = self._calculate_performance_metrics(final_message, start_time, end_time)
+        performance_metrics = self._calculate_performance_metrics(first_response_full, start_time, end_time)
         yield {"type": "final", "content": final_response, "metrics": performance_metrics}
-
-    async def _handle_stream(self, stream):
-        full_response = ""
-        async for event in stream:
-            if event.type == "text":
-                print(event.text, end="", flush=True)
-                full_response += event.text
-            elif event.type == 'content_block_stop':
-                print('\n\nContent block finished accumulating:', event.content_block)
-
-        final_message = await stream.get_final_message()
-        return full_response, final_message
 
     def _calculate_performance_metrics(self, final_message, start_time, end_time):
         elapsed_time = end_time - start_time
@@ -183,11 +174,3 @@ class ConversationHistory:
                 # add other turns as they are
                 result.append(turn)
         return list(reversed(result))  # sort back to first to last
-
-    async def process_tool_call(tool_name: str, tool_input: dict):
-        if tool_name == "firecrawl_search":
-            searcher = FireCrawlSearch()
-            query = tool_input['query']
-            return await searcher.search(query)
-        else:
-            return "Unknown tool"

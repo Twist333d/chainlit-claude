@@ -1,10 +1,6 @@
-import json
-
 from firecrawl import FirecrawlApp
 from dotenv import load_dotenv
-import os
-import asyncio
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 
 load_dotenv()
@@ -36,42 +32,47 @@ firecrawl_search_tool = {
 class FireCrawlSearch:
     def __init__(self):
         self.firecrawl = FirecrawlApp()
-        """self.params = {
-                        "pageOptions": {
-                            "onlyMainContent": True,
-                            "fetchPageContent": True,
-                            "includeHtml": True,
-                            "includeRawHtml": True
-                        },
-                        "searchOptions": {
-                            "limit": 123}
-                    }"""
+        self.params = {
+            "pageOptions": {
+                "onlyMainContent": True,
+                "fetchPageContent": True,
+                "includeHtml": False,
+                "includeRawHtml": False
+            },
+            "searchOptions": {
+                "limit": 3  # Adjust this value as needed
+            }
+        }
+
 
     async def search(self, query: str) -> str:
         try:
-            result = self.firecrawl.search(query=query)
+            result = self.firecrawl.search(query=query, params=self.params)
             return self.format_result(result)
-        except ValidationError as e:
-            return f"Input validation error: {str(e)}"
         except Exception as e:
             return f"Error occured during search: {str(e)}"
 
-    def format_result(self, result: dict) -> str:
-        """Takes as an input the json of the result from firecrawl.
+    def format_result(self, result: list) -> str:
+        """Takes as input the list of results from firecrawl.
         Returns a formatted string for LLM consumption."""
-        if result.get('success'):
-            formatted_results = []
-            for item in result['data']:
-                formatted_item = f"# {item['metadata'].get('title', 'No Title')}\n\n"
-                formatted_item += f"Description: {item['metadata'].get('description', 'No description available')}\n\n"
-                formatted_item += f"Source: {item['metadata'].get('sourceURL', 'Unknown')}\n\n"
-                formatted_item += "Content:\n\n"
-                formatted_item += item.get('markdown', 'No content available')
-                formatted_item += "\n\n---\n\n"
-                formatted_results.append(formatted_item)
-            return "\n".join(formatted_results)
-        else:
-            return "Error: Search was not successful. Please try again."
+        if not isinstance(result, list):
+            return f"Error: Unexpected result type. Expected list, got {type(result)}. Result: {result}"
+
+        formatted_results = []
+        for item in result:
+            if not isinstance(item, dict):
+                formatted_results.append(f"Error: Unexpected item type. Expected dict, got {type(item)}. Item: {item}")
+                continue
+
+            metadata = item.get('metadata', {})
+            formatted_item = (f"# {metadata.get('title', 'No Title')} | Source:"
+                              f" {metadata.get('sourceURL', 'Unknown')}\n\n")
+            formatted_item += "Content:\n\n"
+            formatted_item += item.get('markdown', item.get('content', 'No content available'))
+            formatted_item += "\n\n---\n\n"
+            formatted_results.append(formatted_item)
+
+        return "\n".join(formatted_results) if formatted_results else "No results found."
 
 async def process_tool_call(tool_name: str, tool_input: dict):
     if tool_name == "firecrawl_search":

@@ -7,7 +7,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.12,<3.13"
 chainlit = "^1.1.402"
 langchain-anthropic = "^0.1.22"
 python-dotenv = "^1.0.1"
