@@ -693,3 +693,5 @@ cython_debug/
 /.files
 chainlit.md
 
+# Roadmap
+todo.md

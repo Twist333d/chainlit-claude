@@ -7,6 +7,7 @@ This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/doc
 - **Prompt Caching:**  Leverage Claude's prompt caching feature to save on token usage and reduce latency, especially in extended conversations.
 - **Performance Insights:**  Get detailed metrics on each interaction, including time taken, token usage, and caching efficiency.
 - **Streaming output:** Support streaming of response to improve the UX.
+- **FireCrawl web search** (NEW) Support intelligent formulating of queries and searching for info on the web. 
 
 ## 🚀 Getting Started
 
@@ -22,9 +23,10 @@ This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/doc
    ```
 3. Set up Environment Variables:
 Create a .env file in the root directory.
-Add your Anthropic API key:
+Add your API keys:
    ```python
-   ANTHROPIC_API_KEY=your_anthropic_api_key
+   ANTHROPIC_API_KEY=your_api_key
+   FIRECRAWL_API_KEY=your_api_key
    ```
 
 4. Run the Application:
@@ -40,10 +42,12 @@ Once the application is running, you can start interacting with Claude 3.5 Sonne
 Type your messages in the chat input.
 The application will send your message to Claude and display its response.
 After each response, you'll see performance metrics, including prompt caching statistics.
+If user request requires additional information -> it intelligently formulates a query and searches on the web.
 
 ## 🚧 Open Issues
 - None so far -> please report one, if you spot it
 
 ## 🙏 Acknowledgments
 Anthropic for developing the Claude language model.
+Firecrawl for creating a superb LLM search.
 Chainlit for providing the conversational AI framework.
