@@ -692,4 +692,4 @@ cython_debug/
 /local_tests/
 /.files
 chainlit.md
-
+/new_features

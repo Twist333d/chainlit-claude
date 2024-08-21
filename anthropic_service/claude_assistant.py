@@ -3,21 +3,18 @@ import os
 import time
 from dotenv import load_dotenv
 import yaml
-from .tools.tools import firecrawl_search_tool, process_tool_call, FireCrawlSearch
+from .tools.tools import firecrawl_search_tool, process_tool_call
+from datetime import datetime
 
 
 # Load environment variables
 load_dotenv()
 
-# Load the system_prompt.yaml file
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-system_prompt_path = os.path.join(base_dir, 'anthropic_service', 'prompts', 'system_prompt.yaml')
 
-with open(system_prompt_path, 'r') as file:
-    prompts = yaml.safe_load(file)
 
-# Access the system prompt
-system_prompt = prompts.get('system_prompt')
+
+
+
 
 # Initialize the client
 class ClaudeAssistant:
@@ -27,14 +24,30 @@ class ClaudeAssistant:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.conversation_history = ConversationHistory(cached_turns)
-        self.system_message = [
+        self.system_message = self._load_system_prompt()
+        self.tools=[firecrawl_search_tool]
+
+    def update_system_prompt(self):
+        self.system_message = self._load_system_prompt()
+
+    def _load_system_prompt(self):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        system_prompt_path = os.path.join(base_dir, 'anthropic_service', 'prompts', 'system_prompt.yaml')
+
+        with open(system_prompt_path, 'r') as file:
+            prompts = yaml.safe_load(file)
+
+        system_prompt = prompts.get('system_prompt')
+        current_datestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        system_prompt = system_prompt.format(current_datestamp=current_datestamp)
+
+        return [
             {
-                'type' : 'text',
-                'text' : system_prompt,
-                'cache_control' : {'type' : 'ephemeral'}
+                'type': 'text',
+                'text': system_prompt,
+                'cache_control': {'type': 'ephemeral'}
             }
         ]
-        self.tools=[firecrawl_search_tool]
 
     async def generate_response(self, user_message):
         user_message = f"<user_query>{user_message}</user_query>" # formatting of the user query to align with system

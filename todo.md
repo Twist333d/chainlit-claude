@@ -5,7 +5,7 @@ New features:
    - Crawl and get the results
    - Store in a local database
    - Setup RAG to answer questions with references
-3. 
+
 
 Improvements:
 1. Improve search function:
