@@ -29,6 +29,12 @@ async def main(message: cl.Message):
         async for item in anthropic_service.generate_response(message.content):
             if item["type"] == "chunk":
                 await response_message.stream_token(item["content"])
+            elif item["type"] == "tool_use":
+                # Create a step for tool use
+                with cl.Step(name=f"Using tool: {item['name']}") as step:
+                    step.input = item['input']
+                    step.output = f"URLs parsed: {item['result']['urls_parsed']}"
+                    await step.send()
             elif item["type"] == "final":
                 await response_message.send()
 

@@ -21,7 +21,7 @@ system_prompt = prompts.get('system_prompt')
 
 # Initialize the client
 class ClaudeAssistant:
-    def __init__(self, model_name="claude-3-5-sonnet-20240620", max_tokens=8192, temperature=0.75, cached_turns=3):
+    def __init__(self, model_name="claude-3-5-sonnet-20240620", max_tokens=8192, temperature=0.75, cached_turns=2):
         self.client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.model_name = model_name
         self.temperature = temperature
@@ -37,6 +37,8 @@ class ClaudeAssistant:
         self.tools=[firecrawl_search_tool]
 
     async def generate_response(self, user_message):
+        user_message = f"<user_query>{user_message}</user_query>" # formatting of the user query to align with system
+        # prompt
         self.conversation_history.add_turn_user(user_message)
         start_time = time.time()
         messages = self.conversation_history.get_turns()

@@ -12,16 +12,43 @@ class FireCrawlInput(BaseModel):
 # Define the schema for the tool
 firecrawl_search_tool = {
     'name': "firecrawl_search",
-    'description' : "Uses search and scrape functionality by FireCrawl to provide the scraped data from all result "
-                    "pages and compiled into a clean markdown. All technical details are handled by FireCrawl. User "
-                    "just needs to submit a relevant search query just as they would to Google.",
+    'description': """
+    Uses search and scrape functionality to provide up-to-date information from web pages. This tool should be used when you need current information that may not be in your training data, or to verify and update your existing knowledge.
+
+    Key features and usage guidelines:
+    1. Input: A single, focused search query string.
+    2. Output: Returns a dictionary with 'urls_parsed' (list of scraped URLs) and 'content' (formatted string of scraped content).
+    3. Search scope: It automatically searches the web for the query and returns the most relevant results from the top pages in markdown format. The advantage of this endpoint is that it actually scrap each website on the top result so you always get the full content.
+    4. When to use: For current / recent events, recent developments, or when you don't have up to date knowledge.
+    5. When not to use: For historical information, well-established facts, or topics that don't require up-to-date data.
+
+    Query formulation best practices:
+    - Be specific and focused, targeting the core of the user's question.
+    - Include key terms, especially for results, outcomes, or current status.
+    - Consider the timeline (past, present, future) of the information needed.
+    - Avoid overly broad terms or vague phrasings.
+
+    Examples of effective queries:
+    - "2024 Paris Olympics medal standings" (for current or future results)
+    - "Latest AI breakthroughs in natural language processing 2023"
+    - "SpaceX Starship most recent launch outcomes"
+
+    Examples of ineffective queries:
+    - "Olympics" (too broad, lacks specificity)
+    - "AI advancements" (too vague, no timeframe)
+    - "space exploration" (not focused on specific events or outcomes)
+
+    Limitations:
+    - The tool does not generate or create new information; it only retrieves existing web content.
+
+    Always analyze and synthesize the search results to provide a coherent and relevant response to the user's query.
+    """,
     'input_schema': {
-        'type' : 'object',
+        'type': 'object',
         'properties': {
-            'query' : {
-                'type' : 'string',
-                'description' : "The search query. Should be concise and focused on the specific information needed. "
-                                "Avoid overly broad or vague queries."
+            'query': {
+                'type': 'string',
+                'description': "The search query string. Should be concise, focused, and directly related to the user's question."
             }
         },
         'required': ['query'],
@@ -48,7 +75,11 @@ class FireCrawlSearch:
     async def search(self, query: str) -> str:
         try:
             result = self.firecrawl.search(query=query, params=self.params)
-            return self.format_result(result)
+            return {
+                'urls_parsed' : [item.get('metadata', {}).get('sourceURL') for item in result],
+                'content' : self.format_result(result)
+            }
+
         except Exception as e:
             return f"Error occured during search: {str(e)}"
 
