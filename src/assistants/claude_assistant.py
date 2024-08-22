@@ -1,38 +1,36 @@
 import anthropic
 import os
 import time
-from dotenv import load_dotenv
 import yaml
-from .tools.tools import firecrawl_search_tool, process_tool_call
+from src.config import load_config
+from src.logger import get_logger
+from src.utils.image_utils import get_base64_encoded_image, infer_mime_type
+from src.tools.firecrawl_search_tool import firecrawl_search_tool, process_tool_call
 from datetime import datetime
+import io
 
 
-# Load environment variables
-load_dotenv()
-
-
-
-
-
+config = load_config()
+logger = get_logger(__name__)
 
 
 # Initialize the client
 class ClaudeAssistant:
-    def __init__(self, model_name="claude-3-5-sonnet-20240620", max_tokens=8192, temperature=0.75, cached_turns=2):
-        self.client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        self.model_name = model_name
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.conversation_history = ConversationHistory(cached_turns)
+    def __init__(self):
+        self.client = anthropic.AsyncAnthropic(api_key=config['anthropic_api_key'])
+        self.model_name = config['model_name']
+        self.temperature = config['temperature']
+        self.max_tokens = config['max_tokens']
+        self.conversation_history = ConversationHistory(config['cached_turns'])
         self.system_message = self._load_system_prompt()
-        self.tools=[firecrawl_search_tool]
+        self.tools = [firecrawl_search_tool]
 
     def update_system_prompt(self):
         self.system_message = self._load_system_prompt()
 
     def _load_system_prompt(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        system_prompt_path = os.path.join(base_dir, 'anthropic_service', 'prompts', 'system_prompt.yaml')
+        system_prompt_path = os.path.join(base_dir, 'assistants', 'prompts', 'system_prompt.yaml')
 
         with open(system_prompt_path, 'r') as file:
             prompts = yaml.safe_load(file)
@@ -49,10 +47,43 @@ class ClaudeAssistant:
             }
         ]
 
-    async def generate_response(self, user_message):
-        user_message = f"<user_query>{user_message}</user_query>" # formatting of the user query to align with system
-        # prompt
-        self.conversation_history.add_turn_user(user_message)
+    async def generate_response(self, user_message, images=None):
+        content = []
+
+        if images:
+            if len(images) > 20:
+                error_message = "Error: Cannot process more than 20 images in a single request."
+                logger.error(error_message)
+                yield {"type": "text", "content": error_message}
+                return
+
+            for image in images:
+                try:
+                    base64_image = get_base64_encoded_image(image.path)
+                    mime_type = infer_mime_type(image.name)
+                    logger.info(f"File type: {mime_type}")
+                    if "Error" in base64_image:
+                        logger.error(base64_image)
+                        yield {"type": "text", "content": base64_image}
+                        return
+                    else:
+                        content.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": mime_type,
+                                "data": base64_image
+                            }
+                        })
+                    logger.info(f"Successfully processed image: {image.name}")
+                except Exception as e:
+                    error_message = f"Error processing image {image.name}: {str(e)}"
+                    logger.error(error_message)
+                    yield {"type": "text", "content": error_message}
+                    return
+
+        content.append({"type": "text", "text": f"<user_query>{user_message}</user_query>"})
+        self.conversation_history.add_turn_user(content)
         start_time = time.time()
         messages = self.conversation_history.get_turns()
 
@@ -69,7 +100,6 @@ class ClaudeAssistant:
             async for event in stream:
                 if event.type == "text":
                     yield {"type": "chunk", "content": event.text}
-
 
             first_response_full = await stream.get_final_message()
 
@@ -144,6 +174,7 @@ class ClaudeAssistant:
         }
 
 
+
 # Conversation history class
 class ConversationHistory:
     def __init__(self, cached_turns=10):
@@ -160,32 +191,39 @@ class ConversationHistory:
     def add_turn_user(self, content):
         # add users turn
         self.turns.append(
-            {"role": "user", "content": [{"type": "text", "text": content}]}
+            {"role": "user", "content": content}
         )
 
     def get_turns(self):
-        # retrieve conversation history with specific formatting
+        # Retrieve conversation history with specific formatting
         result = []
         user_turns_processed = 0
-        # iterate through turns in reverse order
+
         for turn in reversed(self.turns):
             if turn["role"] == "user" and user_turns_processed < self.cached_turns:
-                result.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": turn["content"][0]["text"],
-                                "cache_control": {
-                                    "type": "ephemeral"
-                                },  # take the same content
-                            }
-                        ],
-                    }
-                )
+                processed_content = []
+
+                # Iterate through all content items
+                for index, item in enumerate(turn["content"]):
+                    if item["type"] == "text" and index == len(turn["content"]) - 1:
+                        # Add cache_control only to the last text item
+                        processed_content.append({
+                            "type": "text",
+                            "text": item["text"],
+                            "cache_control": {"type": "ephemeral"}
+                        })
+                    else:
+                        # Append other content types (e.g., images) without cache_control
+                        processed_content.append(item)
+
+                result.append({
+                    "role": "user",
+                    "content": processed_content,
+                })
+
                 user_turns_processed += 1
             else:
-                # add other turns as they are
+                # Add other turns as they are
                 result.append(turn)
-        return list(reversed(result))  # sort back to first to last
+
+        return list(reversed(result))

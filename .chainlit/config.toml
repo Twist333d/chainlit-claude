@@ -31,7 +31,7 @@ auto_tag_thread = true
 # Authorize users to spontaneously upload files with messages
 [features.spontaneous_file_upload]
     enabled = true
-    accept = ["*/*"]
+    accept = ["image/jpeg", "image/png", "image/gif", "image/webp"] # Aligned with Anthropic docs
     max_files = 20
     max_size_mb = 100 #5Mb x 20 files == 100Mb which is aligned with Anthropic documentation.
 
@@ -54,6 +54,9 @@ edit_message = true
 [UI]
 # Name of the assistant.
 name = "Claude Assistant"
+
+# Disable the creation of the chainlit.md file (default: true)
+create_chainlit_md = false
 
 # Description of the assistant. This is used for HTML tags.
 # description = ""

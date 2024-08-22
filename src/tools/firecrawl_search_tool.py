@@ -1,9 +1,11 @@
 from firecrawl import FirecrawlApp
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+from src.logger import get_logger
+from src.config import load_config
 
-
-load_dotenv()
+logger = get_logger(__name__)
+config = load_config()
 
 # Define the Pydantic schema for the tool input
 class FireCrawlInput(BaseModel):

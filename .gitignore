@@ -686,10 +686,12 @@ cython_debug/
 
 # Local chainlit translations
 /.chainlit/translations
-
-# Local testing files
-/local_tests/
 /.files
 chainlit.md
-/new_features
-/tutorials
+
+# Local files
+/local_folders/local_tests/
+/local_folders/new_features
+/local_folders/tutorials
+/local_folders
+/local_folders/todo.md
