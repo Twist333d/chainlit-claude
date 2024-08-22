@@ -5,6 +5,7 @@ import mimetypes
 import os
 
 
+
 def get_base64_encoded_image(image_path):
     try:
         # Check if the image exceeds the size limit
