@@ -8,6 +8,7 @@ This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/doc
 - **Performance Insights:**  Get detailed metrics on each interaction, including time taken, token usage, and caching efficiency.
 - **Streaming output:** Support streaming of response to improve the UX.
 - **FireCrawl web search** (NEW) Support intelligent formulating of queries and searching for info on the web. 
+- **Support for image uploads** (NEW) Support for image uploads (JPEG, PNG, GIF, or WebP), max of 20 images per request.
 
 ## 🚀 Getting Started
 
