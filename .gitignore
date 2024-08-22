@@ -684,12 +684,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-# Chainlit
-/.chainlit/
 
 # Local testing files
-
 /local_tests/
 /.files
 chainlit.md
 /new_features
+/tutorials

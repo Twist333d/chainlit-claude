@@ -10,10 +10,16 @@ New features:
 Improvements:
 1. Improve search function:
    - Fix errors when parsing LinkedIn
-   - Re-try if results are not relevant
+   - Review & re-try, if necessary.
+     - There has to be a review & re-try step before sending the results to the user.
 
 UI:
 
-Backend:
-Fixes:
+Backend-only:
+1. Proper logger integrated with the system
+
+Issues:
+- Performance metrics are not calculated correctly. They should follow each API response, however, after 
+  introduction of a tool use they do not.
+- 
 
