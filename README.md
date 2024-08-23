@@ -18,7 +18,7 @@ This project demonstrates how to use  [Claude](https://docs.anthropic.com/en/doc
    cd chainlit-claude 
    ```
  
-2. Install Dependencies:
+2. Install Dependencies (Poetry):
    ```python
    poetry install
    ```
