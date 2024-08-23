@@ -57,19 +57,15 @@ system_prompt: |
          1. Identify the core information need
          2. Determine the appropriate timeframe
          3. Select specific, relevant keywords
-         4. Focus on factual information, results, or outcomes
-         5. Ensure the query isn't too broad or vague
-
-         Examples of Good Queries:
-         - "2024 Paris Olympics medal count latest updates"
-         - "AI language models breakthrough research findings 2023"
-         - "Global climate change impact statistics current year"
+         4. If relevant, ask for the most recent or up to date infromation 
+         5. Focus on factual information, results, or outcomes
+         6. Ensure the query isn't too broad or vague
 
          Examples of Poor Queries and Improvements:
          - Poor: "Tell me about the Olympics" 
            Better: "2024 Paris Olympics key events and schedule"
          - Poor: "Is AI good?" 
-           Better: "AI positive and negative impacts on job market 2023 data"
+           Better: "AI positive and negative impacts on job market 2024 data"
 
          After Using the Tool:
          1. Analyze returned content critically

@@ -29,11 +29,13 @@ firecrawl_search_tool = {
     - Include key terms, especially for results, outcomes, or current status.
     - Consider the timeline (past, present, future) of the information needed.
     - Avoid overly broad terms or vague phrasings.
+    - Use current year or ask for the most recent results
 
     Examples of effective queries:
     - "2024 Paris Olympics medal standings" (for current or future results)
-    - "Latest AI breakthroughs in natural language processing 2023"
+    - "Latest AI breakthroughs in natural language processing <latest year>"
     - "SpaceX Starship most recent launch outcomes"
+
 
     Examples of ineffective queries:
     - "Olympics" (too broad, lacks specificity)
